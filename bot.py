@@ -3,8 +3,8 @@ from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
 import os
 
 # --- الإعدادات المباشرة (دمج التوكن والرابط كما طلبت) ---
-BOT_TOKEN = "7516565123:AAH786_ExampleToken" # ضع التوكن الخاص بك هنا
-WEB_URL = "https://example.ngrok-free.app"   # ضع رابط ngrok الخاص بك هنا
+BOT_TOKEN = "8355857057:AAHzyZ2J0yMpGiN8VEa8cyBnt_LoRN_2hjk" # ضع التوكن الخاص بك هنا
+WEB_URL = "https://unrhythmic-kaiden-incomputably.ngrok-free.dev"   # ضع رابط ngrok الخاص بك هنا
 # --------------------------------------------------
 
 bot = telebot.TeleBot(BOT_TOKEN)
