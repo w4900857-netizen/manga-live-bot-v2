@@ -3,91 +3,86 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Manga Reader WebApp</title>
+    <title>Manga Live - قارئ المانهوا</title>
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
-        body {
-            background-color: #1a1a1a;
-            color: #ffffff;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            -webkit-tap-highlight-color: transparent;
-        }
-        .manga-card {
-            background-color: #2d2d2d;
-            border-radius: 12px;
-            overflow: hidden;
-            transition: transform 0.2s;
-        }
-        .manga-card:active {
-            transform: scale(0.98);
-        }
-        .loader {
-            border: 4px solid #333;
-            border-top: 4px solid #3b82f6;
-            border-radius: 50%;
-            width: 40px;
-            height: 40px;
-            animation: spin 1s linear infinite;
-        }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-        }
+        body { background-color: #121212; color: #e0e0e0; font-family: sans-serif; }
+        .manga-card { background-color: #1e1e1e; border-radius: 8px; overflow: hidden; transition: all 0.2s; border: 1px solid #333; }
+        .manga-card:active { transform: scale(0.95); background-color: #2a2a2a; }
+        .loader { border: 3px solid #333; border-top: 3px solid #3b82f6; border-radius: 50%; width: 30px; height: 30px; animation: spin 1s linear infinite; }
+        @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
         .hidden { display: none; }
+        img { max-width: 100%; height: auto; display: block; }
     </style>
 </head>
-<body class="p-4">
+<body class="p-3">
     <!-- Header -->
-    <div id="header" class="flex justify-between items-center mb-6">
-        <h1 class="text-2xl font-bold text-blue-500">Manga Live</h1>
-        <button id="back-btn" class="hidden bg-gray-700 px-4 py-2 rounded-lg">عودة</button>
+    <div class="flex justify-between items-center mb-4 sticky top-0 bg-[#121212] py-2 z-50 border-b border-gray-800">
+        <h1 class="text-xl font-bold text-blue-500">Manga Live</h1>
+        <div class="flex gap-2">
+            <select id="source-select" class="bg-gray-800 text-xs rounded px-2 py-1 border border-gray-700">
+                <!-- Sources will be loaded here -->
+            </select>
+            <button id="back-btn" class="hidden bg-gray-700 text-xs px-3 py-1 rounded">عودة</button>
+        </div>
     </div>
 
-    <!-- Loading -->
-    <div id="loading" class="flex justify-center items-center h-64 hidden">
-        <div class="loader"></div>
+    <!-- Loading Indicator -->
+    <div id="loading" class="flex flex-col justify-center items-center h-64 hidden">
+        <div class="loader mb-2"></div>
+        <p class="text-xs text-gray-500">جاري التحميل...</p>
     </div>
 
     <!-- Home View -->
-    <div id="home-view" class="grid grid-cols-2 gap-4">
-        <!-- Mangas will be loaded here -->
-    </div>
+    <div id="home-view" class="grid grid-cols-2 sm:grid-cols-3 gap-3"></div>
 
     <!-- Chapters View -->
-    <div id="chapters-view" class="hidden space-y-2">
-        <!-- Chapters will be loaded here -->
-    </div>
+    <div id="chapters-view" class="hidden space-y-2"></div>
 
     <!-- Reader View -->
-    <div id="reader-view" class="hidden space-y-0">
-        <!-- Images will be loaded here -->
-    </div>
+    <div id="reader-view" class="hidden flex flex-col items-center"></div>
 
     <script>
         const tg = window.Telegram.WebApp;
         tg.expand();
+        tg.ready();
 
         const homeView = document.getElementById('home-view');
         const chaptersView = document.getElementById('chapters-view');
         const readerView = document.getElementById('reader-view');
         const loading = document.getElementById('loading');
         const backBtn = document.getElementById('back-btn');
+        const sourceSelect = document.getElementById('source-select');
 
         let currentView = 'home';
+        let currentSource = 'azoramoon';
 
         async function fetchAPI(endpoint, params = {}) {
             loading.classList.remove('hidden');
+            params.source = currentSource;
             const queryString = new URLSearchParams(params).toString();
             try {
                 const response = await fetch(`/api/${endpoint}?${queryString}`);
-                return await response.json();
+                const data = await response.json();
+                if (data.error) throw new Error(data.error);
+                return data;
             } catch (e) {
                 console.error(e);
-                alert('حدث خطأ أثناء التحميل');
+                alert('خطأ: ' + e.message);
+                return [];
             } finally {
                 loading.classList.add('hidden');
             }
+        }
+
+        async function loadSources() {
+            const sources = await fetchAPI('sources');
+            sourceSelect.innerHTML = sources.map(s => `<option value="${s.id}">${s.name}</option>`).join('');
+            sourceSelect.onchange = (e) => {
+                currentSource = e.target.value;
+                loadHome();
+            };
         }
 
         async function loadHome() {
@@ -99,13 +94,19 @@
             backBtn.classList.add('hidden');
 
             const mangas = await fetchAPI('home');
+            if (mangas.length === 0) {
+                homeView.innerHTML = '<p class="col-span-2 text-center text-gray-500 py-10">لم يتم العثور على مانهوا. جرب مصدراً آخر.</p>';
+                return;
+            }
             mangas.forEach(manga => {
                 const card = document.createElement('div');
-                card.className = 'manga-card shadow-lg';
+                card.className = 'manga-card';
                 card.innerHTML = `
-                    <img src="${manga.thumbnail || 'https://via.placeholder.com/150x200?text=No+Image'}" class="w-full h-48 object-cover">
+                    <div class="relative h-48 bg-gray-900">
+                        <img src="${manga.thumbnail || 'https://via.placeholder.com/150x200?text=No+Image'}" class="w-full h-full object-cover" onerror="this.src='https://via.placeholder.com/150x200?text=Error'">
+                    </div>
                     <div class="p-2">
-                        <p class="text-sm font-semibold truncate">${manga.title}</p>
+                        <p class="text-[10px] font-bold leading-tight h-8 overflow-hidden">${manga.title}</p>
                     </div>
                 `;
                 card.onclick = () => loadChapters(manga.url);
@@ -121,27 +122,38 @@
             backBtn.classList.remove('hidden');
 
             const chapters = await fetchAPI('chapters', { url: mangaUrl });
+            if (chapters.length === 0) {
+                chaptersView.innerHTML = '<p class="text-center text-gray-500 py-10">لا توجد فصول متاحة حالياً.</p>';
+                return;
+            }
             chapters.forEach(chapter => {
                 const btn = document.createElement('div');
-                btn.className = 'bg-gray-800 p-4 rounded-lg active:bg-gray-700';
+                btn.className = 'bg-[#1e1e1e] p-3 rounded border border-gray-800 active:bg-gray-800 text-sm';
                 btn.innerText = chapter.title;
                 btn.onclick = () => loadReader(chapter.url);
                 chaptersView.appendChild(btn);
             });
+            window.scrollTo(0, 0);
         }
 
         async function loadReader(chapterUrl) {
             currentView = 'reader';
             chaptersView.classList.add('hidden');
             readerView.classList.remove('hidden');
-            readerView.innerHTML = '';
+            readerView.innerHTML = '<p class="text-xs text-gray-500 my-4">جاري تحميل الصور...</p>';
 
             const images = await fetchAPI('images', { url: chapterUrl });
+            readerView.innerHTML = '';
+            if (images.length === 0) {
+                readerView.innerHTML = '<p class="text-center text-gray-500 py-10">فشل تحميل الصور لهذا الفصل.</p>';
+                return;
+            }
             images.forEach(imgUrl => {
                 const img = document.createElement('img');
                 img.src = imgUrl;
-                img.className = 'w-full mb-0';
+                img.className = 'w-full';
                 img.loading = 'lazy';
+                img.onerror = () => img.style.display = 'none';
                 readerView.appendChild(img);
             });
             window.scrollTo(0, 0);
@@ -158,7 +170,7 @@
         };
 
         // Initial Load
-        loadHome();
+        loadSources().then(loadHome);
     </script>
 </body>
 </html>

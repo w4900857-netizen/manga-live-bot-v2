@@ -1,43 +1,46 @@
 import telebot
 from telebot.types import InlineKeyboardMarkup, InlineKeyboardButton, WebAppInfo
 import os
-from dotenv import load_dotenv
 
-load_dotenv()
-
-BOT_TOKEN = os.getenv('BOT_TOKEN')
-WEB_URL = os.getenv('WEB_URL')
-
-if not BOT_TOKEN:
-    print("Error: BOT_TOKEN not found in environment variables.")
-if not WEB_URL:
-    print("Error: WEB_URL not found in environment variables.")
+# --- الإعدادات المباشرة (دمج التوكن والرابط كما طلبت) ---
+BOT_TOKEN = "7516565123:AAH786_ExampleToken" # ضع التوكن الخاص بك هنا
+WEB_URL = "https://example.ngrok-free.app"   # ضع رابط ngrok الخاص بك هنا
+# --------------------------------------------------
 
 bot = telebot.TeleBot(BOT_TOKEN)
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
     markup = InlineKeyboardMarkup()
-    # إضافة زر WebApp
+    # زر فتح الـ WebApp
     webapp_button = InlineKeyboardButton(
-        text="فتح قارئ المانهوا 📖", 
+        text="قراءة المانهوا 📖", 
         web_app=WebAppInfo(url=WEB_URL)
     )
     markup.add(webapp_button)
     
     welcome_text = (
-        "👋 أهلاً بك في بوت قارئ المانهوا!\n\n"
-        "يمكنك الآن قراءة المانهوا المفضلة لديك مباشرة داخل تيليغرام.\n"
-        "اضغط على الزر أدناه للبدء."
+        "👋 أهلاً بك في Manga Live!\n\n"
+        "أفضل تجربة لقراءة المانهوا والمانجا مباشرة داخل تيليغرام.\n"
+        "• مصادر متعددة (Azora, MangaLek)\n"
+        "• واجهة سريعة وخفيفة\n"
+        "• دعم كامل للهواتف\n\n"
+        "اضغط على الزر أدناه للبدء 👇"
     )
-    bot.reply_to(message, welcome_text, reply_markup=markup)
+    try:
+        bot.reply_to(message, welcome_text, reply_markup=markup)
+    except Exception as e:
+        print(f"Error sending welcome: {e}")
 
 def run_bot():
-    print("Bot is starting...")
+    print(f"Bot is starting with URL: {WEB_URL}")
+    # حذف الويب هوك القديم لتجنب التعارض
+    bot.remove_webhook()
     try:
-        bot.infinity_polling(timeout=10, long_polling_timeout=5)
+        # استخدام infinity_polling لضمان استمرار العمل وتجنب أخطاء Conflict
+        bot.infinity_polling(timeout=20, long_polling_timeout=10)
     except Exception as e:
-        print(f"Bot error: {e}")
+        print(f"Bot polling error: {e}")
 
 if __name__ == '__main__':
     run_bot()
