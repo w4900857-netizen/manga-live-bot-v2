@@ -1,0 +1,6 @@
+flask
+pyTelegramBotAPI
+cloudscraper
+beautifulsoup4
+requests
+python-dotenv
